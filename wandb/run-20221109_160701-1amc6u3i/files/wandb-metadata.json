@@ -1,0 +1,18 @@
+{
+    "os": "Windows-10-10.0.19041-SP0",
+    "python": "3.7.0",
+    "heartbeatAt": "2022-11-09T08:07:08.260663",
+    "startedAt": "2022-11-09T08:07:01.076748",
+    "docker": null,
+    "gpu": "NVIDIA GeForce RTX 3070 Laptop GPU",
+    "gpu_count": 1,
+    "cpu_count": 16,
+    "cuda": null,
+    "args": [],
+    "state": "running",
+    "program": "d:/Code/PyTorch-YOLOv3/train.py",
+    "codePath": "train.py",
+    "host": "LAPTOP-KHQFP2KH",
+    "username": "ZhangYufan",
+    "executable": "D:\\develop\\Anaconda\\envs\\python37\\python.exe"
+}

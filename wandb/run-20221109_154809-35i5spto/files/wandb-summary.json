@@ -1,0 +1,1 @@
+{"metric/precision": 0.0, "metric/recall": 0.0, "metric/mAP": 0.0, "train/loss": 3.2281322479248047, "train/iou_loss": 0.11318390816450119, "train/obj_loss": 2.074967622756958, "train/class_loss": 1.0399807691574097, "validation/loss": NaN, "validation/iou_loss": NaN, "validation/obj_loss": NaN, "validation/class_loss": NaN, "_timestamp": 1667980169, "_runtime": 80, "_step": 0}

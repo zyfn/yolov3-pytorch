@@ -1,0 +1,21 @@
+Environment information:
+System: Windows 10
+Not using the poetry package
+No git or repo found
+Command line arguments: Namespace(checkpoint_interval=1, conf_thres=0.1, data='config/custom.data', epochs=300, evaluation_interval=1, iou_thres=0.5, logdir='logs', model='config/yolov3.cfg', multiscale_training=False, n_cpu=8, nms_thres=0.5, optimizer=None, pretrained_weights='weights/darknet53.conv.74', seed=-1, verbose=False)
+---- Training Model ----
+Training Epoch 1:   0%|                                                                                                         | 0/51 [00:29<?, ?it/s]
+Traceback (most recent call last):
+  File "d:/Code/PyTorch-YOLOv3/train.py", line 266, in <module>
+    run()
+  File "d:/Code/PyTorch-YOLOv3/train.py", line 166, in run
+    outputs = model(imgs)
+  File "D:\develop\Anaconda\envs\python37\Lib\site-packages\torch\nn\modules\module.py", line 1102, in _call_impl
+    return forward_call(*input, **kwargs)
+  File "d:\Code\PyTorch-YOLOv3\pytorchyolo\models.py", line 240, in forward
+    x,x_val = module[0](x, img_size,val)
+  File "D:\develop\Anaconda\envs\python37\Lib\site-packages\torch\nn\modules\module.py", line 1102, in _call_impl
+    return forward_call(*input, **kwargs)
+  File "d:\Code\PyTorch-YOLOv3\pytorchyolo\models.py", line 178, in forward
+    x = x.view(bs, self.num_anchors, self.no, ny, nx).permute(0, 1, 3, 4, 2).contiguous()
+RuntimeError: shape '[8, 3, 8, 13, 13]' is invalid for input of size 60840

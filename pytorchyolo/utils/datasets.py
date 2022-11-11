@@ -59,7 +59,13 @@ class ListDataset(Dataset):
     def __init__(self, list_path, img_size=416, multiscale=True, transform=None):
         with open(list_path, "r") as file:
             self.img_files = file.readlines()
-
+        ################################### 将 /d转为d:
+        # for i,path in enumerate(self.img_files):
+        #     temp=list(path[1:])
+        #     temp.insert(1,':')
+        #     path = ''.join(temp)
+        #     self.img_files[i]=path
+        ##################################
         self.label_files = []
         for path in self.img_files:
             image_dir = os.path.dirname(path)

@@ -17,7 +17,7 @@ from pytorchyolo.utils.utils import load_classes, ap_per_class, get_batch_statis
 from pytorchyolo.utils.datasets import ListDataset
 from pytorchyolo.utils.transforms import DEFAULT_TRANSFORMS
 from pytorchyolo.utils.parse_config import parse_data_config
-
+from pytorchyolo.utils.loss import compute_loss
 
 def evaluate_model_file(model_path, weights_path, img_path, class_names, batch_size=8, img_size=416,
                         n_cpu=8, iou_thres=0.5, conf_thres=0.5, nms_thres=0.5, verbose=True):
@@ -103,18 +103,31 @@ def _evaluate(model, dataloader, class_names, img_size, iou_thres, conf_thres, n
 
     labels = []
     sample_metrics = []  # List of tuples (TP, confs, pred)
+    ###############################################################################
+    loss_components,batch=0.0,0
+
     for _, imgs, targets in tqdm.tqdm(dataloader, desc="Validating"):
         # Extract labels
         labels += targets[:, 1].tolist()
-        # Rescale target
-        targets[:, 2:] = xywh2xyxy(targets[:, 2:])
-        targets[:, 2:] *= img_size
+        ##################################################################################
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        imgs = imgs.to(device, non_blocking=True)
 
         imgs = Variable(imgs.type(Tensor), requires_grad=False)
 
         with torch.no_grad():
-            outputs = model(imgs)
+            ########################修改###########################################
+            outputs,train_out = model(imgs,val=True)
+            # outputs = model(imgs)
+            ######################加入loss######################################
+            batch += 1
+            loss_components += compute_loss(train_out, targets.to(device),model)[1] # box, obj, cls
+
             outputs = non_max_suppression(outputs, conf_thres=conf_thres, iou_thres=nms_thres)
+
+        # Rescale target
+        targets[:, 2:] = xywh2xyxy(targets[:, 2:])
+        targets[:, 2:] *= img_size
 
         sample_metrics += get_batch_statistics(outputs, targets, iou_threshold=iou_thres)
 
@@ -130,7 +143,9 @@ def _evaluate(model, dataloader, class_names, img_size, iou_thres, conf_thres, n
 
     print_eval_stats(metrics_output, class_names, verbose)
 
-    return metrics_output
+    ######################################################################
+    return metrics_output,loss_components/batch
+    # return metrics_output
 
 
 def _create_validation_data_loader(img_path, batch_size, img_size, n_cpu):

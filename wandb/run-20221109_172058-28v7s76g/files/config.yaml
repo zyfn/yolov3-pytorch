@@ -1,0 +1,66 @@
+wandb_version: 1
+
+_wandb:
+  desc: null
+  value:
+    cli_version: 0.12.17
+    framework: torch
+    is_jupyter_run: false
+    is_kaggle_kernel: false
+    python_version: 3.7.0
+    start_time: 1667985658
+    t:
+      1:
+      - 1
+      - 41
+      - 54
+      - 55
+      3:
+      - 1
+      4: 3.7.0
+      5: 0.12.17
+      8:
+      - 3
+      - 5
+checkpoint_interval:
+  desc: null
+  value: 1
+conf_thres:
+  desc: null
+  value: 0.1
+data:
+  desc: null
+  value: config/custom.data
+epochs:
+  desc: null
+  value: 300
+evaluation_interval:
+  desc: null
+  value: 1
+iou_thres:
+  desc: null
+  value: 0.5
+logdir:
+  desc: null
+  value: logs
+model:
+  desc: null
+  value: config/yolov3.cfg
+multiscale_training:
+  desc: null
+  value: false
+n_cpu:
+  desc: null
+  value: 8
+nms_thres:
+  desc: null
+  value: 0.5
+pretrained_weights:
+  desc: null
+  value: weights/darknet53.conv.74
+seed:
+  desc: null
+  value: -1
+verbose:
+  desc: null
+  value: false

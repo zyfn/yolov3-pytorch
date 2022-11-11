@@ -1,0 +1,17 @@
+Environment information:
+System: Windows 10
+Not using the poetry package
+No git or repo found
+Command line arguments: Namespace(checkpoint_interval=1, conf_thres=0.1, data='config/custom.data', epochs=2000, evaluation_interval=1, iou_thres=0.5, logdir='logs', model='config/yolov3 copy.cfg', multiscale_training=False, n_cpu=8, nms_thres=0.5, optimizer=None, pretrained_weights='checkpoints\\yolov3_ckpt_69.pth', seed=-1, verbose=False)
+Traceback (most recent call last):
+  File "d:/Code/PyTorch-YOLOv3/train.py", line 266, in <module>
+    run()
+  File "d:/Code/PyTorch-YOLOv3/train.py", line 100, in run
+    model = load_model(args.model, args.pretrained_weights)
+  File "d:\Code\PyTorch-YOLOv3\pytorchyolo\models.py", line 438, in load_model
+    model.load_state_dict(torch.load(weights_path, map_location=device))
+  File "D:\develop\Anaconda\envs\python37\Lib\site-packages\torch\serialization.py", line 600, in load
+    with _open_zipfile_reader(opened_file) as opened_zipfile:
+  File "D:\develop\Anaconda\envs\python37\Lib\site-packages\torch\serialization.py", line 242, in __init__
+    super(_open_zipfile_reader, self).__init__(torch._C.PyTorchFileReader(name_or_buffer))
+RuntimeError: PytorchStreamReader failed reading zip archive: failed finding central directory

@@ -1,0 +1,17 @@
+Environment information:
+System: Windows 10
+Not using the poetry package
+No git or repo found
+Command line arguments: Namespace(checkpoint_interval=1, conf_thres=0.1, data='config/custom.data', epochs=300, evaluation_interval=1, iou_thres=0.5, logdir='logs', model='config/yolov3.cfg', multiscale_training=False, n_cpu=8, nms_thres=0.5, optimizer=None, pretrained_weights='weights/darknet53.conv.74', seed=-1, verbose=False)
+Traceback (most recent call last):
+  File "d:/Code/PyTorch-YOLOv3/train.py", line 266, in <module>
+    run()
+  File "d:/Code/PyTorch-YOLOv3/train.py", line 100, in run
+    model = load_model(args.model, args.pretrained_weights)
+  File "d:\Code\PyTorch-YOLOv3\pytorchyolo\models.py", line 430, in load_model
+    model = Darknet(model_path).to(device)
+  File "d:\Code\PyTorch-YOLOv3\pytorchyolo\models.py", line 208, in __init__
+    self.hyperparams, self.module_list = create_modules(self.module_defs)
+  File "d:\Code\PyTorch-YOLOv3\pytorchyolo\models.py", line 124, in create_modules
+    num_classes = int(module_def["classes"])
+ValueError: invalid literal for int() with base 10: '3####'

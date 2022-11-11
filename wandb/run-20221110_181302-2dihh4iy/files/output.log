@@ -1,0 +1,6 @@
+Environment information:
+System: Windows 10
+Not using the poetry package
+No git or repo found
+Command line arguments: Namespace(checkpoint_interval=1, conf_thres=0.1, data='config/custom.data', epochs=2000, evaluation_interval=1, iou_thres=0.5, logdir='logs', model='config/yolov3 copy.cfg', multiscale_training=False, n_cpu=8, nms_thres=0.5, optimizer=None, pretrained_weights='weights/darknet53.conv.74', seed=-1, verbose=False)
+---- Training Model ----

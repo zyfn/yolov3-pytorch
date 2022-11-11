@@ -39,7 +39,7 @@ def create_modules(module_defs):
     for module_i, module_def in enumerate(module_defs):
         modules = nn.Sequential()
 
-        if module_def["type"] == "convolutional":
+        if module_def["type"] == "convolutional"  :
             bn = int(module_def["batch_normalize"])
             filters = int(module_def["filters"])
             kernel_size = int(module_def["size"])
@@ -62,7 +62,28 @@ def create_modules(module_defs):
                 modules.add_module(f"leaky_{module_i}", nn.LeakyReLU(0.1))
             if module_def["activation"] == "mish":
                 modules.add_module(f"mish_{module_i}", Mish())
-
+        ############################################################################################
+        elif module_def["type"] == "depthConv":
+            bn = int(module_def["batch_normalize"])
+            filters = int(module_def["filters"])
+            kernel_size = int(module_def["size"])
+            pad = (kernel_size - 1) // 2
+            modules.add_module(
+                f"depth_conv_{module_i}",
+                nn.Conv2d(
+                    in_channels=output_filters[-1],
+                    out_channels=filters,
+                    kernel_size=kernel_size,
+                    stride=int(module_def["stride"]),
+                    padding=pad,
+                    groups=filters,
+                    bias=not bn,
+                ),
+            )
+            if bn:
+                modules.add_module(f"batch_norm_depth_{module_i}",
+                                   nn.BatchNorm2d(filters, momentum=0.1, eps=1e-5))
+            
         elif module_def["type"] == "maxpool":
             kernel_size = int(module_def["size"])
             stride = int(module_def["stride"])
@@ -80,9 +101,18 @@ def create_modules(module_defs):
             layers = [int(x) for x in module_def["layers"].split(",")]
             filters = sum([output_filters[1:][i] for i in layers]) // int(module_def.get("groups", 1))
             modules.add_module(f"route_{module_i}", nn.Sequential())
+            #####################################################################################
+            if "batch_normalize" in module_def:                   #加入BN
+                modules.add_module(f"batch_norm_{module_i}",
+                nn.BatchNorm2d(filters, momentum=0.1, eps=1e-5))
 
         elif module_def["type"] == "shortcut":
-            filters = output_filters[1:][int(module_def["from"])]
+            ################################################################
+            # filters = output_filters[1:][int(module_def["from"])]
+
+            f= int(module_def["from"].split(",")[0])
+            filters = output_filters[1:][f]
+
             modules.add_module(f"shortcut_{module_i}", nn.Sequential())
 
         elif module_def["type"] == "yolo":
@@ -141,11 +171,15 @@ class YOLOLayer(nn.Module):
             'anchor_grid', anchors.clone().view(1, -1, 1, 1, 2))
         self.stride = None
 
-    def forward(self, x, img_size):
+    def forward(self, x, img_size,val=False):
         stride = img_size // x.size(2)
         self.stride = stride
         bs, _, ny, nx = x.shape  # x(bs,255,20,20) to x(bs,3,20,20,85)
         x = x.view(bs, self.num_anchors, self.no, ny, nx).permute(0, 1, 3, 4, 2).contiguous()
+#################验证时候用到的变量#########################################
+        x_val=None
+        if val:
+            x_val=x.clone()
 
         if not self.training:  # inference
             if self.grid.shape[2:4] != x.shape[2:4]:
@@ -155,8 +189,9 @@ class YOLOLayer(nn.Module):
             x[..., 2:4] = torch.exp(x[..., 2:4]) * self.anchor_grid # wh
             x[..., 4:] = x[..., 4:].sigmoid()
             x = x.view(bs, -1, self.no)
-
-        return x
+##########################################################################  
+        return x,x_val
+        # return x
 
     @staticmethod
     def _make_grid(nx=20, ny=20):
@@ -171,31 +206,120 @@ class Darknet(nn.Module):
         super(Darknet, self).__init__()
         self.module_defs = parse_model_config(config_path)
         self.hyperparams, self.module_list = create_modules(self.module_defs)
-        self.yolo_layers = [layer[0]
-                            for layer in self.module_list if isinstance(layer[0], YOLOLayer)]
+        self.yolo_layers = [layer[0] for layer in self.module_list if isinstance(layer[0], YOLOLayer)]
         self.seen = 0
         self.header_info = np.array([0, 0, 0, self.seen, 0], dtype=np.int32)
-
-    def forward(self, x):
+        
+    def forward(self, x, val=False):
         img_size = x.size(2)
-        layer_outputs, yolo_outputs = [], []
+        layer_outputs, yolo_outputs,val_outputs= [], [], []
         for i, (module_def, module) in enumerate(zip(self.module_defs, self.module_list)):
-            if module_def["type"] in ["convolutional", "upsample", "maxpool"]:
+            if module_def["type"] in ["convolutional", "upsample", "maxpool","depthConv"]:
                 x = module(x)
             elif module_def["type"] == "route":
                 combined_outputs = torch.cat([layer_outputs[int(layer_i)] for layer_i in module_def["layers"].split(",")], 1)
                 group_size = combined_outputs.shape[1] // int(module_def.get("groups", 1))
                 group_id = int(module_def.get("group_id", 0))
                 x = combined_outputs[:, group_size * group_id : group_size * (group_id + 1)] # Slice groupings used by yolo v4
+                #########################################################################################
+                if len(module)>1:
+                    x = module[1](x)             #加入BN
             elif module_def["type"] == "shortcut":
-                layer_i = int(module_def["from"])
-                x = layer_outputs[-1] + layer_outputs[layer_i]
-            elif module_def["type"] == "yolo":
-                x = module[0](x, img_size)
-                yolo_outputs.append(x)
-            layer_outputs.append(x)
-        return yolo_outputs if self.training else torch.cat(yolo_outputs, 1)
+                ############################修改为list#####################
+                #训练yolov3 darknet时候的配置
+                # layer_i = int(module_def["from"])
+                # x = layer_outputs[-1] + layer_outputs[layer_i]
 
+                #训练我修改的yolov3时候的配置
+                x = layer_outputs[-1]
+                layer_i = [int(i) for i in module_def["from"].split(",")]
+                for i in layer_i:
+                    x=x+layer_outputs[int(i)]
+            elif module_def["type"] == "yolo":
+            #################新增val验证时候计算loss需要的结果#################
+                x,x_val = module[0](x, img_size,val)
+                yolo_outputs.append(x)
+                val_outputs.append(x_val)
+                # x = module[0](x, img_size)
+                # yolo_outputs.append(x)
+            layer_outputs.append(x)
+        ###################################################################################################
+        return yolo_outputs if self.training  else ((torch.cat(yolo_outputs, 1),val_outputs) if val else torch.cat(yolo_outputs, 1))
+        # return yolo_outputs if self.training else torch.cat(yolo_outputs, 1)
+
+######################## deploy ###################################################      
+    def get_equivalent_kernel_bias(self,block1,block2,block3,input_dim):
+        kernel7x7, bias7x7 = self._fuse_bn_tensor(block1)
+        kernel3x3, bias3x3 = self._fuse_bn_tensor(block2)
+        kernelid, biasid = self._fuse_bn_tensor(block3,int(input_dim))
+        return kernel7x7 + self._pad_3x3_to_7x7_tensor(kernel3x3) + kernelid, bias7x7 + bias3x3 + biasid
+    def _pad_3x3_to_7x7_tensor(self, kernel3x3):
+        if kernel3x3 is None:
+            return 0
+        else:
+            return torch.nn.functional.pad(kernel3x3, [2,2,2,2])
+    def _fuse_bn_tensor(self, branch,input_dim=None):
+        if branch is None:
+            return 0, 0
+        if isinstance(branch, nn.Sequential):           #branch[0]：conv,     branch[1]:bn
+            kernel = branch[0].weight
+            running_mean = branch[1].running_mean
+            running_var = branch[1].running_var
+            gamma = branch[1].weight
+            beta = branch[1].bias
+            eps = branch[1].eps
+        else:
+            assert isinstance(branch, nn.BatchNorm2d) 
+            kernel_value = np.zeros((input_dim, 1, 7, 7), dtype=np.float32)
+            for i in range(input_dim):
+                kernel_value[i, 0, 3, 3] = 1
+            id_tensor = torch.from_numpy(kernel_value).to(branch.weight.device)
+            kernel = id_tensor
+            running_mean = branch.running_mean
+            running_var = branch.running_var
+            gamma = branch.weight
+            beta = branch.bias
+            eps = branch.eps
+        std = (running_var + eps).sqrt()
+        t = (gamma / std).reshape(-1, 1, 1, 1)
+        return kernel * t, beta - running_mean * gamma / std
+    def switch_to_deploy(self):
+        remove_list,k=[],0
+        for i, (module_def, module) in enumerate(zip(self.module_defs, self.module_list)):
+            if "res" in module_def:               #res结构共有5块，deploy模式下将它们合并为1块
+                remove_list.append(i)                    #要删除的块
+                k+=1
+                if k==1:                                    # 深度卷积+bn
+                    block1=module
+                    input_dim=int(module_def["filters"])
+                elif k==3:                                    # 普通卷积+bn
+                    block2=module
+                elif k==4:                                    # identity+bn
+                    block3=module[1]                          # bn
+                elif k==5:                                    # add层
+                    kernel, bias = self.get_equivalent_kernel_bias(block1,block2,block3,input_dim)         #重参数化
+                    res_dep_conv_index=remove_list[len(remove_list)-5]
+                    self.module_list[res_dep_conv_index] = nn.Sequential()                                    #新建一个重参数化深度卷积
+                    self.module_list[res_dep_conv_index].add_module(f'res_dep_conv_{i}',nn.Conv2d(
+                        in_channels=input_dim,
+                        out_channels=input_dim,
+                        kernel_size=7,
+                        stride=1,
+                        padding=3,
+                        groups=input_dim,
+                        ))
+                    # self.module_list[remove_list[0]].__delitem__(1)                                      #将原来的卷积+bn替换为重参数化后的卷积参数，删除bn
+                    self.module_list[res_dep_conv_index][0].weight.data=kernel                                 #赋予深度卷积重参数化后的参数
+                    self.module_list[res_dep_conv_index][0].bias.data=bias
+                    k=0
+        remove_list.reverse()
+        for i,del_index in enumerate(remove_list):                                                     #反序，先删除后面的
+            if i%5!=4:                                                            #删除参与重参数化的结果
+                # self.module_defs.remove(self.module_defs[del_index])
+                # self.module_list.__delitem__(del_index)
+                del self.module_defs[del_index]
+                del self.module_list[del_index]
+###################################################################################################### 
     def load_darknet_weights(self, weights_path):
         """Parses and loads the weights stored in 'weights_path'"""
 
@@ -315,4 +439,5 @@ def load_model(model_path, weights_path=None):
         else:
             # Load darknet weights
             model.load_darknet_weights(weights_path)
+    # model.switch_to_deploy()
     return model
