@@ -65,7 +65,7 @@ def run():
     parser.add_argument("-v", "--verbose", action='store_true', help="Makes the training more verbose")
     parser.add_argument("--optimizer", type=str, help="Interval of epochs between saving model weights")
     parser.add_argument("--n_cpu", type=int, default=8, help="Number of cpu threads to use during batch generation")
-    parser.add_argument("--pretrained_weights", type=str, default='checkpoints\yolov3_ckpt_267.pth',help="Path to checkpoint file (.weights or .pth). Starts training from checkpoint model")
+    parser.add_argument("--pretrained_weights", type=str, default='weights\darknet53.conv.74',help="Path to checkpoint file (.weights or .pth). Starts training from checkpoint model")
     parser.add_argument("--checkpoint_interval", type=int, default=1, help="Interval of epochs between saving model weights")
     parser.add_argument("--evaluation_interval", type=int, default=1, help="Interval of epochs between evaluations on validation set")
     parser.add_argument("--multiscale_training", action="store_true", help="Allow multi-scale training")
@@ -156,7 +156,7 @@ def run():
     # skip epoch zero, because then the calculations for when to evaluate/checkpoint makes more intuitive sense
     # e.g. when you stop after 30 epochs and evaluate every 10 epochs then the evaluations happen after: 10,20,30
     # instead of: 0, 10, 20
-    for epoch in range(268, args.epochs+1):
+    for epoch in range(1, args.epochs+1):
 
         print("\n---- Training Model ----")
 
@@ -267,5 +267,6 @@ def run():
                     "validation/loss": float(val_loss[3]),"validation/iou_loss":float(val_loss[0]),"validation/obj_loss":float(val_loss[1]),"validation/class_loss":float(val_loss[2])})
 
 if __name__ == "__main__":
-    wandb.init(project="yolov3-pytorch", entity="yu-fan",resume=True,id='4vcdtjyf')
+    # wandb.init(project="yolov3-pytorch", entity="yu-fan",resume=True,id='4vcdtjyf')
+    wandb.init(project="yolov3-pytorch", entity="yu-fan")
     run()
